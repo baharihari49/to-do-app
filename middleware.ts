@@ -11,12 +11,22 @@ const publicPaths = [
   '/api/auth/logout'
 ];
 
+// Add todos API allowlist
+const todoApiPaths = [
+  '/api/todos',
+];
+
 export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   
   // Check if the path is public
   const isPublicPath = publicPaths.some(publicPath => 
     path === publicPath || path.startsWith('/api/auth/')
+  );
+  
+  // Check if this is a todos API request
+  const isTodosApi = todoApiPaths.some(todoPath => 
+    path === todoPath || path.startsWith(`${todoPath}/`)
   );
 
   // Allow access to static files and public paths
@@ -29,8 +39,7 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get('auth-token')?.value;
 
-  // If there is no token and the path requires authentication,
-  // redirect to login page
+  // If there is no token and the path requires authentication
   if (!token) {
     // For API routes, return 401 Unauthorized
     if (path.startsWith('/api/')) {
@@ -94,14 +103,12 @@ export async function middleware(request: NextRequest) {
 }
 
 // Configure which paths the middleware runs on
+// This is the critical part - we need to exclude the todos API
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Match all paths except:
+    // - Static files (_next/static, _next/image, favicon.ico)
+    // - Todo API paths
+    '/((?!_next/static|_next/image|favicon.ico|api/todos).*)',
   ],
 };

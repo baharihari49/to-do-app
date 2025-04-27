@@ -5,7 +5,6 @@ import { Calendar } from '@/components/ui/calendar';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,9 +18,17 @@ import { Label } from '@/components/ui/label';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { FormFooter } from './FormFooter';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 
 // Import the shared types from the Dashboard/Types.ts file
-import { Todo as TodoType, TodoFormValues, PriorityLevel } from '../Dashboard/Types';
+import { Todo as TodoType, TodoFormValues } from '@/components/Dashboard/Types';
 
 // Export the Todo type from Types.ts to ensure consistent types
 export type Todo = TodoType;
@@ -29,11 +36,11 @@ export type Todo = TodoType;
 interface FormAddProps {
   isEditing?: boolean;
   editingTodo?: Todo | null;
-  onClose: () => void;
+  onClose?: () => void;
   onSubmit: (todo: TodoFormValues) => void;
 }
 
-export const FormAdd: React.FC<FormAddProps> = ({
+export const FormComponents: React.FC<FormAddProps> = ({
   isEditing = false,
   editingTodo = null,
   onClose,
@@ -66,12 +73,12 @@ export const FormAdd: React.FC<FormAddProps> = ({
 
     // Format the date and update the data
     const formattedDate = format(dueDate, 'yyyy-MM-dd');
-    
+
     const todoData: TodoFormValues = {
       ...data,
       dueDate: formattedDate
     };
-    
+
     onSubmit(todoData);
   });
 
@@ -85,10 +92,10 @@ export const FormAdd: React.FC<FormAddProps> = ({
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input 
+                <Input
                   {...field}
-                  placeholder="Enter task title" 
-                  required 
+                  placeholder="Enter task title"
+                  required
                 />
               </FormControl>
               <FormMessage />
@@ -103,10 +110,10 @@ export const FormAdd: React.FC<FormAddProps> = ({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   {...field}
-                  placeholder="Enter task description" 
-                  rows={3} 
+                  placeholder="Enter task description"
+                  rows={3}
                 />
               </FormControl>
               <FormMessage />
@@ -171,12 +178,12 @@ export const FormAdd: React.FC<FormAddProps> = ({
                     <RadioGroupItem value="low" id="low" />
                     <Label htmlFor="low" className="text-muted-foreground">Low</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="medium" id="medium" />
                     <Label htmlFor="medium" className="text-muted-foreground">Medium</Label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="high" id="high" />
                     <Label htmlFor="high" className="text-muted-foreground">High</Label>
@@ -187,18 +194,38 @@ export const FormAdd: React.FC<FormAddProps> = ({
             </FormItem>
           )}
         />
-        
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={form.formState.isSubmitting}
-          >
-            {isEditing ? 'Update Task' : 'Add Task'}
-          </Button>
-        </div>
+
+        {isEditing && (
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select 
+                  value={field.value} 
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className='w-full'>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <FormFooter
+          isEditing={isEditing}
+          onCancel={onClose}
+        />
       </form>
     </Form>
   );

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react';
-import { ListTable } from './Table';
+import { ListTable } from './ListTable/Table';
 import { Overview } from './OverView';
 import { useAuth } from '@/lib/auth';
 
@@ -203,6 +203,17 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
         }
     };
 
+    // Update todo
+    const updateTodo = async (): Promise<void> => {
+        try {
+            // Refresh the todo list after an update
+            fetchTodos();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+            console.error('Error updating todo:', err);
+        }
+    };
+
     // Format date
     const formatDate = (dateString: string | null): string => {
         if (!dateString) return 'No due date';
@@ -256,7 +267,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
     const markSelectedAsCompleted = async (): Promise<void> => {
         try {
             const selectedIds = Object.entries(selected)
-                .filter(([_, isSelected]) => isSelected)
+                .filter(([, isSelected]) => isSelected)
                 .map(([id]) => id);
             
             if (selectedIds.length === 0) return;
@@ -295,7 +306,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
     const deleteSelected = async (): Promise<void> => {
         try {
             const selectedIds = Object.entries(selected)
-                .filter(([_, isSelected]) => isSelected)
+                .filter(([, isSelected]) => isSelected)
                 .map(([id]) => id);
             
             if (selectedIds.length === 0) return;
@@ -386,6 +397,9 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
                 getPriorityColor={getPriorityColor}
                 isOverdue={isOverdue}
                 onTaskAdded={addTodo}
+                onTaskUpdated={updateTodo}
+                fetchTodos={fetchTodos}
+                setError={setError}
             />
         </div>
     );

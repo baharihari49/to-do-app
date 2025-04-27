@@ -5,15 +5,22 @@ export type PriorityLevel = 'high' | 'medium' | 'low';
 export type TodoStatus = 'pending' | 'completed';
 export type FilterType = 'all' | 'pending' | 'completed';
 export type SortByType = 'dueDate' | 'priority';
+export type StatusType = 'completed' | 'pending';
 
 // The core Todo item interface
 export interface Todo {
-  id: number;  // Must be a number (not null)
+  id: number;
   title: string;
   description: string;
-  status: TodoStatus;
+  status: StatusType;
   dueDate: string;
   priority: PriorityLevel;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    name: string;
+    avatar?: string;
+  };
 }
 
 // New Todo (no ID yet)
@@ -27,12 +34,12 @@ export interface NewTodo {
 
 // TodoForm Values (for form state)
 export interface TodoFormValues {
-  id?: number | null; // Optional for new todos
+  id?: number | null;
   title: string;
-  description: string;
-  dueDate: string;
-  priority: PriorityLevel;
-  status: TodoStatus;
+  description?: string;
+  status?: StatusType;
+  dueDate?: string | null;
+  priority?: PriorityLevel;
 }
 
 // Overview component props
@@ -143,4 +150,7 @@ export interface ListTableProps {
   getPriorityColor: (priority: PriorityLevel) => string;
   isOverdue: (dateString: string) => boolean;
   onTaskAdded?: (todo: Todo) => void;
+  onTaskUpdated?: (todo: Todo) => void;
+  fetchTodos: () => Promise<void>;
+  setError: (error: string) => void;
 }

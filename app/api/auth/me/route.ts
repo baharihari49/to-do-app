@@ -1,9 +1,9 @@
 // app/api/auth/me/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Get the current user from the JWT
     const currentUser = await getCurrentUser();

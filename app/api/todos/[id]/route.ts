@@ -13,35 +13,35 @@ const updateTodoSchema = z.object({
   dueDate: z.string().optional().nullable(),
 });
 
+// Helper to get ID from URL
+function getIdFromRequest(request: NextRequest) {
+  const pathname = request.nextUrl.pathname; // example: /api/todos/123
+  const parts = pathname.split('/');
+  return parts[parts.length - 1];
+}
+
 // GET a single todo by ID
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const todoId = params.id;
-    
-    // Find todo by ID
+
+    const todoId = getIdFromRequest(request);
+
     const todo = await db.todo.findUnique({
       where: { id: todoId },
     });
-    
-    // Check if todo exists
+
     if (!todo) {
       return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
     }
-    
-    // Check if todo belongs to current user
+
     if (todo.userId !== currentUser.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
+
     return NextResponse.json({ todo }, { status: 200 });
   } catch (error) {
     console.error('Error fetching todo:', error);
@@ -50,38 +50,28 @@ export async function GET(
 }
 
 // PATCH update a todo by ID
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const todoId = params.id;
-    
-    // Find todo by ID
+
+    const todoId = getIdFromRequest(request);
+
     const existingTodo = await db.todo.findUnique({
       where: { id: todoId },
     });
-    
-    // Check if todo exists
+
     if (!existingTodo) {
       return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
     }
-    
-    // Check if todo belongs to current user
+
     if (existingTodo.userId !== currentUser.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
-    // Parse request body
-    const body = await req.json();
-    
-    // Validate input
+
+    const body = await request.json();
     const result = updateTodoSchema.safeParse(body);
     if (!result.success) {
       return NextResponse.json(
@@ -89,10 +79,9 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    
+
     const { title, description, status, priority, dueDate } = result.data;
-    
-    // Update todo
+
     const updatedTodo = await db.todo.update({
       where: { id: todoId },
       data: {
@@ -103,7 +92,7 @@ export async function PATCH(
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       },
     });
-    
+
     return NextResponse.json({ todo: updatedTodo }, { status: 200 });
   } catch (error) {
     console.error('Error updating todo:', error);
@@ -112,39 +101,31 @@ export async function PATCH(
 }
 
 // DELETE a todo by ID
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
-    
     if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const todoId = params.id;
-    
-    // Find todo by ID
+
+    const todoId = getIdFromRequest(request);
+
     const existingTodo = await db.todo.findUnique({
       where: { id: todoId },
     });
-    
-    // Check if todo exists
+
     if (!existingTodo) {
       return NextResponse.json({ error: 'Todo not found' }, { status: 404 });
     }
-    
-    // Check if todo belongs to current user
+
     if (existingTodo.userId !== currentUser.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    
-    // Delete todo
+
     await db.todo.delete({
       where: { id: todoId },
     });
-    
+
     return NextResponse.json({ message: 'Todo deleted successfully' }, { status: 200 });
   } catch (error) {
     console.error('Error deleting todo:', error);

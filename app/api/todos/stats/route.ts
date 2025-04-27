@@ -1,10 +1,17 @@
 // app/api/todos/stats/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/server-auth';
 
-// Helper function to convert BigInt to Number
-const processBigIntValues = (obj: any): any => {
+// Define types for our query results
+type RawCountResult = {
+  status?: string;
+  priority?: string;
+  count: bigint;
+};
+
+// Helper function to convert BigInt to Number with proper typing
+const processBigIntValues = <T>(obj: T): unknown => {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -18,9 +25,9 @@ const processBigIntValues = (obj: any): any => {
   }
 
   if (typeof obj === 'object') {
-    const result: any = {};
-    for (const key in obj) {
-      result[key] = processBigIntValues(obj[key]);
+    const result: Record<string, unknown> = {};
+    for (const key in obj as Record<string, unknown>) {
+      result[key] = processBigIntValues((obj as Record<string, unknown>)[key]);
     }
     return result;
   }
@@ -29,7 +36,7 @@ const processBigIntValues = (obj: any): any => {
 };
 
 // GET todo statistics for the current user
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const currentUser = await getCurrentUser();
     
@@ -38,7 +45,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Get counts by status
-    const rawStatusCounts = await db.$queryRaw`
+    const rawStatusCounts = await db.$queryRaw<RawCountResult[]>`
       SELECT 
         status, 
         COUNT(*) as count 
@@ -51,7 +58,7 @@ export async function GET(req: NextRequest) {
     `;
     
     // Get counts by priority
-    const rawPriorityCounts = await db.$queryRaw`
+    const rawPriorityCounts = await db.$queryRaw<RawCountResult[]>`
       SELECT 
         priority, 
         COUNT(*) as count 
