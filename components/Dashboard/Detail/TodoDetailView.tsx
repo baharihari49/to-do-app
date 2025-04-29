@@ -10,9 +10,9 @@ import { Todo } from '@/Types/Types';
 interface TodoDetailViewProps {
   todo: Todo;
   onEdit?: (todo: Todo) => void;
-  onDelete?: (id: string | number) => void;
+  onDelete?: (id: number) => void;
   onBack?: () => void;
-  onToggleStatus?: (id: string | number) => void;
+  onToggleStatus?: (id: number) => void;
 }
 
 const TodoDetailView: React.FC<TodoDetailViewProps> = ({ 

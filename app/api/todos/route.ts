@@ -4,6 +4,28 @@ import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/server-auth'; // Updated import path
 import { z } from 'zod';
 
+// Type definitions to match the interface
+type StatusType = 'pending' | 'in-progress' | 'completed';
+type PriorityLevel = 'low' | 'medium' | 'high';
+
+// Todo interface as specified
+export interface Todo {
+  id: number | string;
+  title: string;
+  description: string;
+  status: StatusType;
+  dueDate: string | null;
+  startDate?: string | null;
+  time?: string | null;
+  priority: PriorityLevel;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: {
+    name: string;
+    avatar?: string | null;
+  };
+}
+
 // Validation schema for creating a todo
 const createTodoSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -14,6 +36,27 @@ const createTodoSchema = z.object({
   startDate: z.string().optional().nullable(),
   time: z.string().optional().nullable(),
 });
+
+// Function to format a todo from the database to match the Todo interface
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function formatTodo(dbTodo: any, userName: string, userAvatar?: string | null): Todo {
+  return {
+    id: dbTodo.id,
+    title: dbTodo.title,
+    description: dbTodo.description || '',
+    status: dbTodo.status as StatusType,
+    priority: dbTodo.priority as PriorityLevel,
+    dueDate: dbTodo.dueDate ? dbTodo.dueDate.toISOString() : null,
+    startDate: dbTodo.startDate ? dbTodo.startDate.toISOString() : null,
+    time: dbTodo.time || null,
+    createdAt: dbTodo.createdAt.toISOString(),
+    updatedAt: dbTodo.updatedAt.toISOString(),
+    createdBy: {
+      name: userName,
+      avatar: userAvatar
+    }
+  };
+}
 
 // GET all todos (with pagination)
 export async function GET(req: NextRequest) {
@@ -44,14 +87,28 @@ export async function GET(req: NextRequest) {
     // Get total count for pagination
     const totalCount = await db.todo.count({ where });
     
-    // Get todos with pagination
-    const todos = await db.todo.findMany({
+    // Get todos with pagination and include user data
+    const dbTodos = await db.todo.findMany({
       where,
       skip,
       take: limit,
       orderBy: { 
         updatedAt: 'desc' 
       },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
+    });
+    
+    // Format todos to match the Todo interface
+    const todos = dbTodos.map(todo => {
+      const userName = `${todo.user.firstName} ${todo.user.lastName}`.trim();
+      return formatTodo(todo, userName || 'User', null);
     });
     
     return NextResponse.json({
@@ -93,7 +150,7 @@ export async function POST(req: NextRequest) {
     const { title, description, status, priority, dueDate, startDate, time } = result.data;
     
     // Create new todo
-    const todo = await db.todo.create({
+    const newTodo = await db.todo.create({
       data: {
         title,
         description: description || null,
@@ -104,7 +161,19 @@ export async function POST(req: NextRequest) {
         time: time || null,
         userId: currentUser.id,
       },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true
+          }
+        }
+      }
     });
+    
+    // Format the created todo to match the Todo interface
+    const userName = `${newTodo.user.firstName} ${newTodo.user.lastName}`.trim();
+    const todo = formatTodo(newTodo, userName, null);
     
     return NextResponse.json({ todo }, { status: 201 });
   } catch (error) {

@@ -1,27 +1,28 @@
 'use client'
 
 import { ModalDialog } from "@/components/Modal/Modal"
-import { FormComponents } from "../Form/Form"
-import { TodoFormValues } from "@/Types/Types"
+import { FormComponents } from "@/components/Dashboard/Form/Form"
+import { Todo, TodoFormValues } from "@/Types/Types"
 import { useTodos } from "@/hooks/useTodos"
 
-interface CreateProps {
-    open: boolean,
+interface EditProps {
+    todo: Todo;
+    open: boolean;
     setOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export const Create: React.FC<CreateProps> = ({
+export const Edit: React.FC<EditProps> = ({
+    todo,
     open,
     setOpen
 }) => {
-    // Get the addTodo function from the useTodos hook
-    const { addTodo } = useTodos();
+    // Get the updateTodo function from the useTodos hook
+    const { updateTodo } = useTodos();
 
-    const handleCreateSubmit = async (formValues: TodoFormValues) => {
+    const handleEditSubmit = async (formValues: TodoFormValues) => {
         try {
-            // Format the todo data with the correct type for dueDate
-            // Since Todo.dueDate is a required string, provide an empty string if no due date
-            const todoData = {
+            // Format the todo data for the API with the correct type for dueDate
+            const updateData = {
                 title: formValues.title,
                 description: formValues.description || "",
                 status: formValues.status || "pending",
@@ -31,13 +32,13 @@ export const Create: React.FC<CreateProps> = ({
                 dueDate: formValues.dueDate || "" // Use empty string instead of undefined/null
             };
 
-            // Use the addTodo function from the hook
-            await addTodo(todoData);
-            
+            // Use the updateTodo function from the hook
+            await updateTodo(todo.id, updateData);
+
             // Close the modal on success
             setOpen(false);
         } catch (err) {
-            console.error('Error adding todo:', err);
+            console.error('Error updating todo:', err);
         }
     };
 
@@ -49,16 +50,16 @@ export const Create: React.FC<CreateProps> = ({
         <ModalDialog
             modalBodyComponents={
                 <FormComponents
-                    isEditing={false}
-                    editingTodo={null}
-                    onSubmit={handleCreateSubmit}
+                    isEditing={true}
+                    editingTodo={todo}
+                    onSubmit={handleEditSubmit}
                     onClose={handleClose}
                 />
             }
             open={open}
             setOpen={setOpen}
-            title="Add new task"
-            description="Fill out the form below to create a new task."
+            title="Edit Task"
+            description="Update your task details below."
         />
     );
 };

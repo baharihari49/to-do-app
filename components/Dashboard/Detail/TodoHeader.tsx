@@ -10,7 +10,7 @@ import { Todo } from '@/Types/Types';
 interface TodoHeaderProps {
   todo: Todo;
   onEdit?: (todo: Todo) => void;
-  onToggleStatus?: (id: string | number) => void;
+  onToggleStatus?: (id: number) => void;
   setIsDeleteDialogOpen: (isOpen: boolean) => void;
 }
 

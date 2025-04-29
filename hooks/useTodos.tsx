@@ -85,11 +85,12 @@ export function useTodos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
     },
   });
 
   const updateTodoMutation = useMutation({
-    mutationFn: async ({ id, updateData }: { id: number; updateData: Partial<Todo> }) => {
+    mutationFn: async ({ id, updateData }: { id: number | string; updateData: Partial<Todo> }) => {
       const res = await fetch(`/api/todos/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -101,11 +102,12 @@ export function useTodos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
     },
   });
 
   const deleteTodoMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: number | string) => {
       const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed to delete todo');
       return res.json();
@@ -113,23 +115,73 @@ export function useTodos() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
     },
   });
 
   const batchMutation = useMutation({
-    mutationFn: async ({ action, ids }: { action: 'complete' | 'delete'; ids: number[] }) => {
-      const res = await fetch('/api/todos/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ids }),
-      });
-      if (!res.ok) throw new Error('Failed batch operation');
-      return res.json();
+    mutationFn: async ({ action, ids }: { action: 'complete' | 'delete'; ids: string[] }) => {
+      console.log(`Executing batch ${action} operation with ids:`, ids);
+  
+      // PERUBAHAN: Jangan filter berdasarkan isNaN karena UUID bukan angka
+      // Validasi bahwa ID tidak kosong dan memiliki format yang valid
+      const validIds = ids.filter(id => id && typeof id === 'string' && id.trim() !== '');
+  
+      console.log("Valid IDs:", validIds);
+  
+      if (validIds.length === 0) {
+        console.warn('No valid IDs provided for batch operation');
+        return { message: 'No valid IDs provided' };
+      }
+  
+      try {
+        const res = await fetch('/api/todos/batch', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          // PERUBAHAN: Kirim validIds langsung tanpa konversi tambahan
+          body: JSON.stringify({
+            action,
+            ids: validIds
+          }),
+        });
+  
+        // Log response status untuk debugging
+        console.log(`Batch operation response status: ${res.status}`);
+  
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error(`Batch operation failed (${res.status}):`, errorText);
+  
+          let errorJson;
+          try {
+            errorJson = JSON.parse(errorText);
+          } catch (e) {
+            errorJson = { message: errorText || res.statusText };
+          }
+  
+          throw new Error(`Failed batch operation: ${errorJson.message || res.statusText}`);
+        }
+  
+        return await res.json();
+      } catch (error) {
+        console.error('Error in batch operation:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      // Reset selected items setelah operasi batch berhasil
+      setSelected({});
     },
+    onError: (error) => {
+      console.error("Batch mutation error:", error);
+      // Opsional: tambahkan notifikasi error ke user di sini
+    }
   });
 
   const todos = todosData?.todos || [];
@@ -137,7 +189,12 @@ export function useTodos() {
 
   const getSortedTodos = useCallback(() => {
     if (sortBy === 'dueDate') {
-      return [...todos].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+      return [...todos].sort((a, b) => {
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
     } else if (sortBy === 'priority') {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
       return [...todos].sort((a, b) =>
@@ -147,8 +204,6 @@ export function useTodos() {
     }
     return todos;
   }, [todos, sortBy]);
-
-
   const handleSelect = useCallback((id: number, isChecked: boolean) => {
     setSelected(prev => ({ ...prev, [id]: isChecked }));
   }, []);
@@ -161,7 +216,7 @@ export function useTodos() {
     setSelected(newSelected);
   }, [todos]);
 
-  const toggleTodoStatus = useCallback(async (id: number) => {
+  const toggleTodoStatus = useCallback(async (id: number | string) => {
     const todo = todos.find((t) => t.id === id);
     if (!todo) return;
 
@@ -174,8 +229,32 @@ export function useTodos() {
 
     queryClient.invalidateQueries({ queryKey: ['todos'] });
     queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+    queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
   }, [todos, updateTodoMutation, queryClient]);
 
+  // Set specific status function
+  const setTodoStatus = useCallback(async (id: number | string, status: 'pending' | 'in-progress' | 'completed') => {
+    try {
+      await updateTodoMutation.mutateAsync({
+        id,
+        updateData: { status }
+      });
+
+      // Invalidate all relevant queries to ensure UI updates
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+      queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+    } catch (error) {
+      console.error(`Error setting task status to ${status}:`, error);
+    }
+  }, [updateTodoMutation, queryClient]);
+
+  // Helper for getting selected IDs
+  const getSelectedIds = useCallback(() => {
+    return Object.entries(selected)
+      .filter(([_, isSelected]) => isSelected)
+      .map(([id, _]) => id);
+  }, [selected]);
 
   return {
     todos,
@@ -194,16 +273,57 @@ export function useTodos() {
     setCurrentPage,
     setSelected,
     addTodo: addTodoMutation.mutateAsync,
-    updateTodo: (id: number, updateData: Partial<Todo>) => updateTodoMutation.mutateAsync({ id, updateData }),
+    updateTodo: (id: number | string, updateData: Partial<Todo>) => updateTodoMutation.mutateAsync({ id, updateData }),
     deleteTodo: deleteTodoMutation.mutateAsync,
-    markSelectedAsCompleted: () => batchMutation.mutateAsync({ action: 'complete', ids: Object.keys(selected).map(Number) }),
-    deleteSelected: () => batchMutation.mutateAsync({ action: 'delete', ids: Object.keys(selected).map(Number) }),
+    // Di markSelectedAsCompleted
+    markSelectedAsCompleted: () => {
+      // ID yang dipilih harus menggunakan ID asli (UUID) bukan angka
+      console.log(selected);
+      const selectedIds = Object.entries(selected)
+        .filter(([_, isSelected]) => isSelected === true)
+        .map(([id, _]) => id); // Gunakan ID asli (bukan parseInt)
+
+      console.log("Selected IDs for completion:", selectedIds);
+
+      if (selectedIds.length === 0) {
+        console.warn('No items selected for completion');
+        return Promise.resolve();
+      }
+
+      return batchMutation.mutateAsync({
+        action: 'complete',
+        ids: selectedIds // Sudah dalam format string
+      });
+    },
+
+    deleteSelected: () => {
+      const selectedIds = Object.entries(selected)
+        .filter(([_, isSelected]) => isSelected === true)
+        .map(([id, _]) => id, 10);
+
+      console.log("Selected IDs for deletion:", selectedIds);
+
+      if (selectedIds.length === 0) {
+        console.warn('No items selected for deletion');
+        return Promise.resolve();
+      }
+
+      // Gunakan try-catch untuk menangkap error
+      return batchMutation.mutateAsync({
+        action: 'delete',
+        ids: selectedIds
+      }).catch(error => {
+        console.error("Error deleting todos:", error);
+        throw error;
+      });
+    },
     refetchTodos,
     formatDate,
     getPriorityColor,
     isOverdue,
     handleSelect,
     handleSelectAll,
-    toggleTodoStatus
+    toggleTodoStatus,
+    setTodoStatus
   };
 }

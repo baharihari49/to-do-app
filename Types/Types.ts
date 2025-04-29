@@ -2,10 +2,10 @@
 
 // Define the priority levels and status types for better type safety
 export type PriorityLevel = 'high' | 'medium' | 'low';
-export type TodoStatus = 'pending' | 'completed';
+export type TodoStatus = 'pending' | 'in-progress' | 'completed';
 export type FilterType = 'all' | 'pending' | 'completed';
 export type SortByType = 'dueDate' | 'priority';
-export type StatusType = 'completed' | 'pending';
+export type StatusType = 'pending' | 'in-progress' | 'completed';
 
 // The core Todo item interface
 export interface Todo {

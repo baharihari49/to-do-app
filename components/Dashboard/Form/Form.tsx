@@ -38,6 +38,7 @@ interface FormAddProps {
   editingTodo?: Todo | null;
   onClose?: () => void;
   onSubmit: (todo: TodoFormValues) => void;
+  initialValues? : Partial<TodoFormValues>
 }
 
 export const FormComponents: React.FC<FormAddProps> = ({
@@ -308,6 +309,7 @@ export const FormComponents: React.FC<FormAddProps> = ({
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>

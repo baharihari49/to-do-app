@@ -4,6 +4,7 @@ import { ModalDialog } from "@/components/Modal/Modal"
 import { FormComponents } from "../Form/Form"
 import { Todo, TodoFormValues } from "@/Types/Types"
 import { useTodos } from "@/hooks/useTodos"
+import { useCalendarTodos } from "@/hooks/useTodoCalendar"
 
 interface EditProps {
     todo: Todo;
@@ -18,6 +19,7 @@ export const Edit: React.FC<EditProps> = ({
 }) => {
     // Get the updateTodo function from the useTodos hook
     const { updateTodo } = useTodos();
+    const { refetchTodos } = useCalendarTodos();
 
     const handleEditSubmit = async (formValues: TodoFormValues) => {
         try {
@@ -34,6 +36,9 @@ export const Edit: React.FC<EditProps> = ({
 
             // Use the updateTodo function from the hook
             await updateTodo(todo.id, updateData);
+
+            // Pastikan memanggil refetchTodos dari useCalendarTodos
+            refetchTodos();
 
             // Close the modal on success
             setOpen(false);

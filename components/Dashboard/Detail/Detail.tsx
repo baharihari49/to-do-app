@@ -14,8 +14,8 @@ import { Todo } from '@/Types/Types';
 interface DetailProps {
   todo: Todo;
   onEdit?: (todo: Todo) => void;
-  onDelete?: (id: string | number) => void;
-  onToggleStatus?: (id: string | number) => void;
+  onDelete?: (id: number) => void;
+  onToggleStatus?: (id: number) => void;
   fetchTodos?: () => void;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -57,14 +57,14 @@ export const Detail: React.FC<DetailProps> = ({
     setIsOpen(false);
   };
 
-  const handleDelete = (id: string | number) => {
+  const handleDelete = (id: number) => {
     if (onDelete) {
       onDelete(id);
     }
     setIsOpen(false);
   };
 
-  const handleToggleStatus = (id: string | number) => {
+  const handleToggleStatus = (id: number) => {
     if (onToggleStatus) {
       onToggleStatus(id);
     }
