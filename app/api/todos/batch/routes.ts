@@ -7,10 +7,10 @@ import { z } from 'zod';
 // Validation schema for batch operations
 const batchOperationSchema = z.object({
   action: z.enum(['complete', 'delete']),
-  ids: z.array(z.string()).min(1, 'At least one ID is required'),
+  ids: z.array(z.string()),
 });
 
-// Handle batch operations (mark multiple todos as complete or delete multiple todos)
+// POST batch operation (complete or delete multiple todos)
 export async function POST(req: NextRequest) {
   try {
     const currentUser = await getCurrentUser();
@@ -33,44 +33,31 @@ export async function POST(req: NextRequest) {
     
     const { action, ids } = result.data;
     
-    // Verify all todos belong to the current user
-    const todos = await db.todo.findMany({
+    // Verify that all todos belong to the current user
+    const todosCount = await db.todo.count({
       where: {
         id: { in: ids },
-      },
-      select: {
-        id: true,
-        userId: true,
+        userId: currentUser.id,
       },
     });
     
-    // Check if all requested todos exist
-    if (todos.length !== ids.length) {
+    if (todosCount !== ids.length) {
       return NextResponse.json(
-        { error: 'One or more todos not found' },
+        { error: 'One or more todos not found or not accessible' },
         { status: 404 }
       );
     }
     
-    // Check if all todos belong to the current user
-    const unauthorized = todos.some(todo => todo.userId !== currentUser.id);
-    if (unauthorized) {
-      return NextResponse.json(
-        { error: 'You do not have permission to modify one or more of these todos' },
-        { status: 403 }
-      );
-    }
-    
-    // Perform the requested action
+    // Perform the batch operation
     if (action === 'complete') {
       // Mark todos as completed
       await db.todo.updateMany({
         where: {
           id: { in: ids },
+          userId: currentUser.id,
         },
         data: {
           status: 'completed',
-          updatedAt: new Date(),
         },
       });
       
@@ -83,16 +70,21 @@ export async function POST(req: NextRequest) {
       await db.todo.deleteMany({
         where: {
           id: { in: ids },
+          userId: currentUser.id,
         },
       });
       
       return NextResponse.json(
-        { message: `${ids.length} todos deleted successfully` },
+        { message: `${ids.length} todos deleted` },
         { status: 200 }
       );
     }
     
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    // Should never reach here due to validation
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Error performing batch operation:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

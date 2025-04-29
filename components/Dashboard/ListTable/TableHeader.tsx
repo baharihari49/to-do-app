@@ -1,4 +1,4 @@
-import { Todo, SelectedTodos } from "../Types";
+import { Todo, SelectedTodos } from "@/Types/Types";
 import { Checkbox } from "@radix-ui/react-checkbox";
 
 interface TableHeaderProps {
@@ -20,7 +20,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({ handleSelectAll, pagin
         </th>
         <th className="h-12 px-4 text-left align-middle font-medium">Task</th>
         <th className="h-12 px-4 text-left align-middle font-medium">Priority</th>
+        <th className="h-12 px-4 text-left align-middle font-medium">Start Date</th>
         <th className="h-12 px-4 text-left align-middle font-medium">Due Date</th>
+        <th className="h-12 px-4 text-left align-middle font-medium">Time</th>
         <th className="h-12 px-4 text-left align-middle font-medium">Status</th>
         <th className="h-12 px-4 text-right align-middle font-medium">Actions</th>
     </tr>

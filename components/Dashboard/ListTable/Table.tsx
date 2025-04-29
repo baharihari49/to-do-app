@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Edit } from '../Edit/Edit';
 import { Detail } from '../Detail/Detail';
-import { ListTableProps, Todo } from '../Types';
+import { ListTableProps, Todo } from '@/Types/Types';
 import { Pagination } from './Pagintaion';
 import { TableHeader } from './TableHeader';
 import { Toolbar } from './Toolbar';
@@ -31,9 +31,11 @@ export const ListTable: React.FC<ListTableProps> = ({
     formatDate,
     getPriorityColor,
     isOverdue,
-    fetchTodos,
-    setError
+    fetchTodos
 }) => {
+    // Get the forceUpdate function from useTodos
+    // const { forceUpdate } = useTodos();
+    
     // State untuk modal dan sheet
     const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
     const [viewingTodo, setViewingTodo] = useState<Todo | null>(null);
@@ -46,6 +48,29 @@ export const ListTable: React.FC<ListTableProps> = ({
     const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced search query
     const [filteredTodos, setFilteredTodos] = useState<Todo[]>(paginatedTodos);
     const [isSearching, setIsSearching] = useState<boolean>(false); // State untuk indikator "sedang mencari"
+    
+    // Memoized search filter function untuk optimasi
+    const filterTodos = useCallback(() => {
+        if (searchQuery.trim()) {
+            // Filter todos yang sesuai dengan search query (case insensitive)
+            return todos.filter(todo => 
+                todo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                (todo.description && todo.description.toLowerCase().includes(searchQuery.toLowerCase()))
+            );
+        }
+        return paginatedTodos;
+    }, [searchQuery, todos, paginatedTodos]);
+    
+    // Force update filteredTodos when todos change
+    useEffect(() => {
+        console.log("Todos updated in ListTable, updating filtered todos");
+        if (searchQuery.trim()) {
+            const results = filterTodos();
+            setFilteredTodos(results);
+        } else {
+            setFilteredTodos(paginatedTodos);
+        }
+    }, [todos, paginatedTodos, searchQuery, filterTodos]); // Menambahkan filterTodos ke dependencies
     
     // Debounce function untuk pencarian
     useEffect(() => {
@@ -65,18 +90,6 @@ export const ListTable: React.FC<ListTableProps> = ({
             clearTimeout(timer);
         };
     }, [searchInput]);
-    
-    // Memoized search filter function untuk optimasi
-    const filterTodos = useCallback(() => {
-        if (searchQuery.trim()) {
-            // Filter todos yang sesuai dengan search query (case insensitive)
-            return todos.filter(todo => 
-                todo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                (todo.description && todo.description.toLowerCase().includes(searchQuery.toLowerCase()))
-            );
-        }
-        return paginatedTodos;
-    }, [searchQuery, todos, paginatedTodos]);
     
     // Effect untuk filter todos berdasarkan pencarian yang sudah di-debounce
     useEffect(() => {
@@ -139,6 +152,7 @@ export const ListTable: React.FC<ListTableProps> = ({
         // Hapus todo
         setTimeout(() => {
             deleteTodo(id as number);
+            // forceUpdate(); // Force UI update
         }, 300);
     };
 
@@ -147,6 +161,7 @@ export const ListTable: React.FC<ListTableProps> = ({
         toggleTodoStatus(id as number);
         // Refresh data setelah toggle
         fetchTodos();
+        // forceUpdate(); // Force UI update
         
         // Perbarui viewingTodo untuk memastikan UI terupdate
         if (viewingTodo && viewingTodo.id === id) {
@@ -156,7 +171,6 @@ export const ListTable: React.FC<ListTableProps> = ({
             });
         }
     };
-
     
     // Handler untuk membersihkan pencarian
     const handleClearSearch = () => {
@@ -164,8 +178,24 @@ export const ListTable: React.FC<ListTableProps> = ({
         setSearchQuery('');
     };
 
+    // Handle modal closing with refresh
+    const handleModalClosed = () => {
+        // Force refresh the display
+        setTimeout(() => {
+            fetchTodos();
+            // forceUpdate();
+        }, 100);
+    };
+
     // Menentukan apakah pencarian aktif
     const isSearchActive = searchQuery.trim().length > 0;
+
+    // Debug log to check data flow
+    useEffect(() => {
+        console.log("ListTable received todos:", todos.length);
+        console.log("ListTable received paginatedTodos:", paginatedTodos.length);
+        console.log("ListTable received sortedTodos:", sortedTodos.length);
+    }, [todos, paginatedTodos, sortedTodos]);
 
     return (
         <div className="space-y-4">
@@ -173,8 +203,6 @@ export const ListTable: React.FC<ListTableProps> = ({
             <Toolbar 
                 handleOpenCreateModal={handleOpenCreateModal}
                 isCreateModalOpen={isCreateModalOpen}
-                fetchTodos={fetchTodos}
-                setError={setError}
                 selectedCount={selectedCount}
                 markSelectedAsCompleted={markSelectedAsCompleted}
                 deleteSelected={deleteSelected}
@@ -254,14 +282,15 @@ export const ListTable: React.FC<ListTableProps> = ({
                 )}
             </div>
 
-            {/* Modal Edit (dipisahkan dari dropdown) */}
+            {/* Modal Edit - Now using the refactored Edit component */}
             {editingTodo && (
                 <Edit
-                    open={isEditModalOpen}
-                    setOpen={setIsEditModalOpen}
-                    fetchTodos={fetchTodos}
-                    setError={setError}
                     todo={editingTodo}
+                    open={isEditModalOpen}
+                    setOpen={(value) => {
+                        setIsEditModalOpen(value);
+                        if (!value) handleModalClosed();
+                    }}
                 />
             )}
 

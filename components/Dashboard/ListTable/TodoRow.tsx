@@ -1,4 +1,4 @@
-import { Todo, SelectedTodos, PriorityLevel } from "../Types";
+import { Todo, SelectedTodos, PriorityLevel } from "@/Types/Types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,18 @@ export const TodoRow: React.FC<TodoRowProps> = ({
                 {todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)}
             </Badge>
         </td>
+
+        {/* --- START DATE --- */}
+        <td
+            className="p-4 align-middle cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => handleOpenDetailSheet(todo)}
+        >
+            <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 opacity-70" />
+                {formatDate(todo.startDate ?? "")}
+            </span>
+        </td>
+
         <td
             className="p-4 align-middle cursor-pointer hover:bg-muted/30 transition-colors"
             onClick={() => handleOpenDetailSheet(todo)}
@@ -79,6 +91,18 @@ export const TodoRow: React.FC<TodoRowProps> = ({
                 {formatDate(todo.dueDate)}
             </span>
         </td>
+
+        {/* --- TIME --- */}
+        <td
+            className="p-4 align-middle cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => handleOpenDetailSheet(todo)}
+        >
+            <span className="flex items-center gap-1.5">
+                🕒 {/* Atau bisa pakai icon clock lain kalau mau */}
+                {todo.time}
+            </span>
+        </td>
+
         <td
             className="p-4 align-middle cursor-pointer hover:bg-muted/30 transition-colors"
             onClick={() => handleOpenDetailSheet(todo)}

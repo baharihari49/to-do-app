@@ -9,14 +9,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Eye, X } from "lucide-react";
 import TodoDetailView from './TodoDetailView';
-import { Todo } from '../Types';
+import { Todo } from '@/Types/Types';
 
 interface DetailProps {
   todo: Todo;
   onEdit?: (todo: Todo) => void;
   onDelete?: (id: string | number) => void;
   onToggleStatus?: (id: string | number) => void;
-  fetchTodos?: () => Promise<void>;
+  fetchTodos?: () => void;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
   isRowClickable?: boolean;

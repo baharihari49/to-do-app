@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { formatDate, getDaysStatus } from '@/utils/DateUtils';
 import { getPriorityColor } from '@/utils/StyleUtils';
 import { StatusBadge } from './StatusBadge';
-import { Todo } from '../Types';
+import { Todo } from '@/Types/Types';
 
 interface TodoHeaderProps {
   todo: Todo;

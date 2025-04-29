@@ -1,20 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
-
-// Define types
-export type Todo = {
-  id: string;
-  title: string;
-  description: string | null;
-  status: 'pending' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  dueDate: string | null;
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-};
+import { Todo, PriorityLevel, FilterType, SortByType, SelectedTodos } from '@/Types/Types';
+import { formatDate, isOverdue, getPriorityColor } from '@/utils/todoHelpers';
 
 export type PaginationData = {
   total: number;
@@ -23,324 +13,173 @@ export type PaginationData = {
   pages: number;
 };
 
-export type FilterType = 'all' | 'pending' | 'completed';
-export type SortByType = 'dueDate' | 'priority';
+export type StatsData = {
+  completedTodos: number;
+  completionRate: number;
+};
 
-export type SelectedTodos = {
-  [key: string]: boolean;
+type TodosResponse = {
+  todos: Todo[];
+  pagination: PaginationData;
 };
 
 export function useTodos() {
   const { user } = useAuth();
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
   const [filter, setFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortByType>('dueDate');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState<PaginationData>({
-    total: 0,
-    page: 1,
-    limit: 10,
-    pages: 0,
-  });
+  const [limit] = useState(5);
   const [selected, setSelected] = useState<SelectedTodos>({});
-  const [selectedCount, setSelectedCount] = useState(0);
 
-  // Fetch todos from API
-  const fetchTodos = useCallback(async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const status = filter === 'all' ? '' : filter;
-      const url = `/api/todos?page=${currentPage}&limit=${pagination.limit}${status ? `&status=${status}` : ''}`;
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch todos');
+  const selectedCount = Object.values(selected).filter(Boolean).length;
+
+  const todosQueryKey = ['todos', { filter, currentPage, limit }];
+
+  const { data: todosData, isLoading, error, refetch: refetchTodos } = useQuery<TodosResponse, Error>({
+    queryKey: todosQueryKey,
+    queryFn: async (): Promise<TodosResponse> => {
+      if (!user) {
+        return { todos: [], pagination: { total: 0, page: 1, limit, pages: 0 } };
       }
-      
-      const data = await response.json();
-      setTodos(data.todos);
-      setPagination(data.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error fetching todos:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, currentPage, pagination.limit, filter]);
+      const status = filter === 'all' ? '' : `&status=${filter}`;
+      const res = await fetch(`/api/todos?page=${currentPage}&limit=${limit}${status}`);
+      if (!res.ok) throw new Error('Failed to fetch todos');
+      return res.json();
+    },
+    placeholderData: {
+      todos: [],
+      pagination: { total: 0, page: 1, limit, pages: 0 },
+    },
+    enabled: !!user,
+  });
 
-  // Fetch todos when dependencies change
-  useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+  const { data: statsData } = useQuery<StatsData, Error>({
+    queryKey: ['todosStats'],
+    queryFn: async (): Promise<StatsData> => {
+      if (!user) {
+        return { completedTodos: 0, completionRate: 0 };
+      }
+      const res = await fetch('/api/todos/stats');
+      if (!res.ok) throw new Error('Failed to fetch stats');
+      return res.json();
+    },
+    placeholderData: {
+      completedTodos: 0,
+      completionRate: 0,
+    },
+    enabled: !!user,
+  });
 
-  // Get sorted todos based on sortBy
+  const addTodoMutation = useMutation({
+    mutationFn: async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(todoData),
+      });
+      if (!res.ok) throw new Error('Failed to add todo');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+    },
+  });
+
+  const updateTodoMutation = useMutation({
+    mutationFn: async ({ id, updateData }: { id: number; updateData: Partial<Todo> }) => {
+      const res = await fetch(`/api/todos/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      });
+      if (!res.ok) throw new Error('Failed to update todo');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+    },
+  });
+
+  const deleteTodoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete todo');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+    },
+  });
+
+  const batchMutation = useMutation({
+    mutationFn: async ({ action, ids }: { action: 'complete' | 'delete'; ids: number[] }) => {
+      const res = await fetch('/api/todos/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ids }),
+      });
+      if (!res.ok) throw new Error('Failed batch operation');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+    },
+  });
+
+  const todos = todosData?.todos || [];
+  const pagination = todosData?.pagination || { total: 0, page: 1, limit, pages: 0 };
+
   const getSortedTodos = useCallback(() => {
     if (sortBy === 'dueDate') {
-      return [...todos].sort((a, b) => {
-        if (!a.dueDate) return 1;
-        if (!b.dueDate) return -1;
-        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-      });
+      return [...todos].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
     } else if (sortBy === 'priority') {
       const priorityOrder = { high: 0, medium: 1, low: 2 };
-      return [...todos].sort((a, b) => {
-        return priorityOrder[a.priority as keyof typeof priorityOrder] - 
-               priorityOrder[b.priority as keyof typeof priorityOrder];
-      });
+      return [...todos].sort((a, b) =>
+        priorityOrder[a.priority as keyof typeof priorityOrder] -
+        priorityOrder[b.priority as keyof typeof priorityOrder]
+      );
     }
     return todos;
   }, [todos, sortBy]);
 
-  // Check if a date is overdue
-  const isOverdue = useCallback((dateString: string | null) => {
-    if (!dateString) return false;
-    const dueDate = new Date(dateString);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return dueDate < today;
-  }, []);
 
-  // Format date for display
-  const formatDate = useCallback((dateString: string | null) => {
-    if (!dateString) return 'No due date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }, []);
-
-  // Get color for priority badge
-  const getPriorityColor = useCallback((priority: string) => {
-    switch (priority) {
-      case 'high':
-        return 'bg-destructive/10 text-destructive hover:bg-destructive/20';
-      case 'medium':
-        return 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20';
-      case 'low':
-        return 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20';
-      default:
-        return '';
-    }
-  }, []);
-
-  // Handle selecting a todo
-  const handleSelect = useCallback((id: string, isChecked: boolean) => {
+  const handleSelect = useCallback((id: number, isChecked: boolean) => {
     setSelected(prev => ({ ...prev, [id]: isChecked }));
-    setSelectedCount(prev => isChecked ? prev + 1 : prev - 1);
   }, []);
 
-  // Handle selecting all todos
   const handleSelectAll = useCallback((isChecked: boolean) => {
     const newSelected: SelectedTodos = {};
-    
     todos.forEach(todo => {
       newSelected[todo.id] = isChecked;
     });
-    
     setSelected(newSelected);
-    setSelectedCount(isChecked ? todos.length : 0);
   }, [todos]);
 
-  // Add new todo
-  const addTodo = useCallback(async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
-    if (!user) return null;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await fetch('/api/todos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(todoData),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add todo');
-      }
-      
-      const data = await response.json();
-      
-      // Refresh todos
-      await fetchTodos();
-      
-      return data.todo;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error adding todo:', err);
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, fetchTodos]);
+  const toggleTodoStatus = useCallback(async (id: number) => {
+    const todo = todos.find((t) => t.id === id);
+    if (!todo) return;
 
-  // Toggle todo status
-  const toggleTodoStatus = useCallback(async (id: string) => {
-    if (!user) return;
-    
-    setError(null);
-    
-    try {
-      // Find current todo status
-      const todo = todos.find(t => t.id === id);
-      if (!todo) return;
-      
-      const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
-      
-      const response = await fetch(`/api/todos/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update todo');
-      }
-      
-      // Update local state
-      setTodos(prev => 
-        prev.map(t => 
-          t.id === id ? { ...t, status: newStatus } : t
-        )
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error updating todo status:', err);
-    }
-  }, [user, todos]);
+    const newStatus = todo.status === 'completed' ? 'pending' : 'completed';
 
-  // Delete todo
-  const deleteTodo = useCallback(async (id: string) => {
-    if (!user) return;
-    
-    setError(null);
-    
-    try {
-      const response = await fetch(`/api/todos/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete todo');
-      }
-      
-      // Update local state
-      setTodos(prev => prev.filter(t => t.id !== id));
-      
-      // Update selected state if needed
-      if (selected[id]) {
-        setSelected(prev => {
-          const newSelected = { ...prev };
-          delete newSelected[id];
-          return newSelected;
-        });
-        setSelectedCount(prev => prev - 1);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error deleting todo:', err);
-    }
-  }, [user, selected]);
+    await updateTodoMutation.mutateAsync({
+      id,
+      updateData: { status: newStatus }
+    });
 
-  // Mark selected todos as completed
-  const markSelectedAsCompleted = useCallback(async () => {
-    if (!user || selectedCount === 0) return;
-    
-    setError(null);
-    
-    try {
-      const selectedIds = Object.keys(selected).filter(id => selected[id]);
-      
-      const response = await fetch('/api/todos/batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'complete',
-          ids: selectedIds,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update todos');
-      }
-      
-      // Update local state
-      setTodos(prev => 
-        prev.map(todo => 
-          selected[todo.id] ? { ...todo, status: 'completed' } : todo
-        )
-      );
-      
-      // Clear selection
-      setSelected({});
-      setSelectedCount(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error marking todos as completed:', err);
-    }
-  }, [user, selected, selectedCount]);
+    queryClient.invalidateQueries({ queryKey: ['todos'] });
+    queryClient.invalidateQueries({ queryKey: ['todosStats'] });
+  }, [todos, updateTodoMutation, queryClient]);
 
-  // Delete selected todos
-  const deleteSelected = useCallback(async () => {
-    if (!user || selectedCount === 0) return;
-    
-    setError(null);
-    
-    try {
-      const selectedIds = Object.keys(selected).filter(id => selected[id]);
-      
-      const response = await fetch('/api/todos/batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'delete',
-          ids: selectedIds,
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete todos');
-      }
-      
-      // Update local state
-      setTodos(prev => prev.filter(todo => !selected[todo.id]));
-      
-      // Clear selection
-      setSelected({});
-      setSelectedCount(0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      console.error('Error deleting todos:', err);
-    }
-  }, [user, selected, selectedCount]);
 
   return {
     todos,
     sortedTodos: getSortedTodos(),
-    paginatedTodos: todos, // The API already handles pagination
     isLoading,
     error,
     filter,
@@ -349,19 +188,22 @@ export function useTodos() {
     pagination,
     selected,
     selectedCount,
+    stats: statsData ? { completedCount: statsData.completedTodos, completionRate: statsData.completionRate } : { completedCount: 0, completionRate: 0 },
     setFilter,
     setSortBy,
     setCurrentPage,
-    fetchTodos,
-    handleSelect,
-    handleSelectAll,
-    markSelectedAsCompleted,
-    deleteSelected,
-    toggleTodoStatus,
-    deleteTodo,
-    addTodo,
+    setSelected,
+    addTodo: addTodoMutation.mutateAsync,
+    updateTodo: (id: number, updateData: Partial<Todo>) => updateTodoMutation.mutateAsync({ id, updateData }),
+    deleteTodo: deleteTodoMutation.mutateAsync,
+    markSelectedAsCompleted: () => batchMutation.mutateAsync({ action: 'complete', ids: Object.keys(selected).map(Number) }),
+    deleteSelected: () => batchMutation.mutateAsync({ action: 'delete', ids: Object.keys(selected).map(Number) }),
+    refetchTodos,
     formatDate,
     getPriorityColor,
     isOverdue,
+    handleSelect,
+    handleSelectAll,
+    toggleTodoStatus
   };
 }

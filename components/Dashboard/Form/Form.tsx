@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/select';
 
 // Import the shared types from the Dashboard/Types.ts file
-import { Todo as TodoType, TodoFormValues } from '@/components/Dashboard/Types';
+import { Todo as TodoType, TodoFormValues } from '@/Types/Types';
 
 // Export the Todo type from Types.ts to ensure consistent types
 export type Todo = TodoType;
@@ -53,6 +53,8 @@ export const FormComponents: React.FC<FormAddProps> = ({
       title: editingTodo?.title || '',
       description: editingTodo?.description || '',
       dueDate: editingTodo?.dueDate || '',
+      startDate: editingTodo?.startDate || '',
+      time: editingTodo?.time || '',
       priority: editingTodo?.priority || 'medium',
       status: editingTodo?.status || 'pending'
     }
@@ -61,6 +63,10 @@ export const FormComponents: React.FC<FormAddProps> = ({
   // State for date handling (since react-hook-form doesn't handle Date objects well)
   const [dueDate, setDueDate] = useState<Date | undefined>(
     editingTodo?.dueDate ? new Date(editingTodo.dueDate) : undefined
+  );
+  
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    editingTodo?.startDate ? new Date(editingTodo.startDate) : undefined
   );
 
   // Handler for form submission
@@ -71,16 +77,36 @@ export const FormComponents: React.FC<FormAddProps> = ({
       return;
     }
 
-    // Format the date and update the data
-    const formattedDate = format(dueDate, 'yyyy-MM-dd');
+    // Format the dates and update the data
+    const formattedDueDate = format(dueDate, 'yyyy-MM-dd');
+    const formattedStartDate = startDate ? format(startDate, 'yyyy-MM-dd') : '';
 
     const todoData: TodoFormValues = {
       ...data,
-      dueDate: formattedDate
+      dueDate: formattedDueDate,
+      startDate: formattedStartDate
     };
 
     onSubmit(todoData);
   });
+
+  // Generate time options for the time select field
+  const generateTimeOptions = () => {
+    const options = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const formattedHour = hour.toString().padStart(2, '0');
+        const formattedMinute = minute.toString().padStart(2, '0');
+        const time = `${formattedHour}:${formattedMinute}`;
+        options.push(
+          <SelectItem key={time} value={time}>
+            {time}
+          </SelectItem>
+        );
+      }
+    }
+    return options;
+  };
 
   return (
     <Form {...form}>
@@ -121,6 +147,75 @@ export const FormComponents: React.FC<FormAddProps> = ({
           )}
         />
 
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Start Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !startDate && "text-muted-foreground"
+                        )}
+                        type="button"
+                      >
+                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={(date) => {
+                        setStartDate(date);
+                        if (date) {
+                          field.onChange(format(date, 'yyyy-MM-dd'));
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="time"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Time</FormLabel>
+                <Select 
+                  value={field.value || ''} 
+                  onValueChange={field.onChange}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select time">
+                        {field.value || <span className="text-muted-foreground">Select time</span>}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {generateTimeOptions()}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
           name="dueDate"
@@ -136,7 +231,7 @@ export const FormComponents: React.FC<FormAddProps> = ({
                         "w-full pl-3 text-left font-normal",
                         !dueDate && "text-muted-foreground"
                       )}
-                      type="button" // Important to prevent form submission
+                      type="button"
                     >
                       {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />

@@ -3,15 +3,7 @@ import { ListTodo, CheckCircle2, Clock } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Calendar } from 'lucide-react';
 import React from 'react';
-
-interface Todo {
-    id: number;
-    title: string;
-    description: string;
-    status: string;
-    dueDate: string;
-    priority: string;
-}
+import { Todo } from '@/Types/Types';
 
 interface OverviewProps {
     completedCount: number;

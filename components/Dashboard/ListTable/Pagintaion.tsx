@@ -1,4 +1,4 @@
-import { Todo } from "../Types";
+import { Todo } from "@/Types/Types";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 

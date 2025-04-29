@@ -1,4 +1,4 @@
-import { FilterType, SortByType, } from "../Types";
+import { FilterType, SortByType, } from "@/Types/Types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, CheckCircle2, Trash, Filter, Search, Loader2 } from "lucide-react";
@@ -21,8 +21,6 @@ import { SetStateAction } from "react";
 interface ToolbarProps {
     handleOpenCreateModal: (value?: boolean) => void;
     isCreateModalOpen: boolean;
-    fetchTodos: () => Promise<void>;
-    setError: (error: string) => void;
     selectedCount: number;
     markSelectedAsCompleted: () => void;
     deleteSelected: () => void;
@@ -39,8 +37,6 @@ interface ToolbarProps {
 export const Toolbar: React.FC<ToolbarProps> = ({
     handleOpenCreateModal,
     isCreateModalOpen,
-    fetchTodos,
-    setError,
     selectedCount,
     markSelectedAsCompleted,
     deleteSelected,
@@ -64,7 +60,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 Add Task
             </Button>
 
-            {/* Modal Create */}
+            {/* Modal Create - Simplified props */}
             <Create
                 open={isCreateModalOpen}
                 setOpen={(value: SetStateAction<boolean>) => {
@@ -75,8 +71,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
 
                     handleOpenCreateModal(newValue);
                 }}
-                fetchTodos={fetchTodos}
-                setError={setError}
             />
             
             {/* Search Box dengan Indikator */}

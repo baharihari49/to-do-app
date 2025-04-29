@@ -2,7 +2,7 @@
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/utils/DateUtils';
 import { getPriorityColor } from '@/utils/StyleUtils';
-import { Todo } from '../Types';
+import { Todo } from '@/Types/Types';
 
 interface TodoDetailsProps {
   todo: Todo;

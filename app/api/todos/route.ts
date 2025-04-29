@@ -11,6 +11,8 @@ const createTodoSchema = z.object({
   status: z.enum(['pending', 'completed']).default('pending'),
   priority: z.enum(['low', 'medium', 'high']).default('medium'),
   dueDate: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  time: z.string().optional().nullable(),
 });
 
 // GET all todos (with pagination)
@@ -88,7 +90,7 @@ export async function POST(req: NextRequest) {
       );
     }
     
-    const { title, description, status, priority, dueDate } = result.data;
+    const { title, description, status, priority, dueDate, startDate, time } = result.data;
     
     // Create new todo
     const todo = await db.todo.create({
@@ -98,6 +100,8 @@ export async function POST(req: NextRequest) {
         status,
         priority,
         dueDate: dueDate ? new Date(dueDate) : null,
+        startDate: startDate ? new Date(startDate) : null,
+        time: time || null,
         userId: currentUser.id,
       },
     });

@@ -5,7 +5,7 @@ import { TodoDescription } from './TodoDescription';
 import { TodoDetails } from './TodoDetails';
 import { TodoCreator } from './TodoCreator';
 import { DeleteConfirmationDialog } from './DeleteConfirmationDialog';
-import { Todo } from '../Types';
+import { Todo } from '@/Types/Types';
 
 interface TodoDetailViewProps {
   todo: Todo;

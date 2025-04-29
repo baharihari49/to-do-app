@@ -14,6 +14,8 @@ export interface Todo {
   description: string;
   status: StatusType;
   dueDate: string;
+  startDate?: string;
+  time?: string;
   priority: PriorityLevel;
   createdAt?: string;
   updatedAt?: string;
@@ -29,6 +31,8 @@ export interface NewTodo {
   description: string;
   status: TodoStatus;
   dueDate: string;
+  startDate?: string;
+  time?: string;
   priority: PriorityLevel;
 }
 
@@ -39,6 +43,8 @@ export interface TodoFormValues {
   description?: string;
   status?: StatusType;
   dueDate?: string | null;
+  startDate?: string | null;
+  time?: string | null;
   priority?: PriorityLevel;
 }
 
@@ -142,15 +148,15 @@ export interface ListTableProps {
   setCurrentPage: (page: number | ((prev: number) => number)) => void;
   handleSelect: (id: number, isChecked: boolean) => void;
   handleSelectAll: (isChecked: boolean) => void;
-  markSelectedAsCompleted: () => void;
-  deleteSelected: () => void;
+  markSelectedAsCompleted: () => Promise<void>; // ✅ karena pakai mutation
+  deleteSelected: () => Promise<void>;           // ✅ karena pakai mutation
   toggleTodoStatus: (id: number) => void;
-  deleteTodo: (id: number) => void;
-  formatDate: (dateString: string) => string;
+  deleteTodo: (id: number) => Promise<void>;      // ✅ karena deleteTodo pakai mutation async
+  formatDate: (dateString: string ) => string;
   getPriorityColor: (priority: PriorityLevel) => string;
-  isOverdue: (dateString: string) => boolean;
-  onTaskAdded?: (todo: Todo) => void;
-  onTaskUpdated?: (todo: Todo) => void;
-  fetchTodos: () => Promise<void>;
+  isOverdue: (dateString: string | null) => boolean;
+  onTaskAdded?: (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => Promise<any>; // ✅ karena addTodo dari useMutation
+  onTaskUpdated?: (id: number, updateData: Partial<Todo>) => Promise<any>; // ✅ karena updateTodo pakai 2 argumen
+  fetchTodos: () => void; // ✅ refetchTodos dari react-query, return void
   setError: (error: string) => void;
 }

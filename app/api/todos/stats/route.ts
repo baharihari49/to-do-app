@@ -3,39 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getCurrentUser } from '@/lib/server-auth';
 
-// Define types for our query results
-type RawCountResult = {
-  status?: string;
-  priority?: string;
-  count: bigint;
-};
-
-// Helper function to convert BigInt to Number with proper typing
-const processBigIntValues = <T>(obj: T): unknown => {
-  if (obj === null || obj === undefined) {
-    return obj;
-  }
-
-  if (typeof obj === 'bigint') {
-    return Number(obj);
-  }
-
-  if (Array.isArray(obj)) {
-    return obj.map(item => processBigIntValues(item));
-  }
-
-  if (typeof obj === 'object') {
-    const result: Record<string, unknown> = {};
-    for (const key in obj as Record<string, unknown>) {
-      result[key] = processBigIntValues((obj as Record<string, unknown>)[key]);
-    }
-    return result;
-  }
-
-  return obj;
-};
-
-// GET todo statistics for the current user
+// GET todo statistics
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
@@ -44,104 +12,89 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Get counts by status
-    const rawStatusCounts = await db.$queryRaw<RawCountResult[]>`
-      SELECT 
-        status, 
-        COUNT(*) as count 
-      FROM 
-        Todo 
-      WHERE 
-        userId = ${currentUser.id} 
-      GROUP BY 
-        status
-    `;
+    // Get total count
+    const totalTodos = await db.todo.count({
+      where: {
+        userId: currentUser.id,
+      },
+    });
     
-    // Get counts by priority
-    const rawPriorityCounts = await db.$queryRaw<RawCountResult[]>`
-      SELECT 
-        priority, 
-        COUNT(*) as count 
-      FROM 
-        Todo 
-      WHERE 
-        userId = ${currentUser.id} 
-      GROUP BY 
-        priority
-    `;
+    // Get completed count
+    const completedTodos = await db.todo.count({
+      where: {
+        userId: currentUser.id,
+        status: 'completed',
+      },
+    });
     
-    // Convert BigInt to Number
-    const statusCounts = processBigIntValues(rawStatusCounts);
-    const priorityCounts = processBigIntValues(rawPriorityCounts);
+    // Get overdue count (todos with due date in the past and not completed)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    // Get overdue todos count
     const overdueTodos = await db.todo.count({
       where: {
         userId: currentUser.id,
         status: 'pending',
         dueDate: {
-          lt: new Date()
-        }
-      }
+          lt: today,
+          not: null,
+        },
+      },
     });
     
-    // Get todos due today count
-    const today = new Date();
-    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    // Get upcoming todos (due within the next 7 days)
+    const nextWeek = new Date();
+    nextWeek.setDate(nextWeek.getDate() + 7);
     
-    const dueTodayTodos = await db.todo.count({
+    const upcomingTodos = await db.todo.count({
       where: {
         userId: currentUser.id,
         status: 'pending',
         dueDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      }
+          gte: today,
+          lt: nextWeek,
+          not: null,
+        },
+      },
     });
     
-    // Get recently completed todos (last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Calculate statistics
+    const completionRate = totalTodos > 0 ? (completedTodos / totalTodos) * 100 : 0;
     
-    const recentlyCompletedCount = await db.todo.count({
+    // Get priority distribution
+    const highPriorityCount = await db.todo.count({
       where: {
         userId: currentUser.id,
-        status: 'completed',
-        updatedAt: {
-          gte: sevenDaysAgo
-        }
-      }
+        priority: 'high',
+      },
     });
     
-    // Calculate completion rate (if there are any todos)
-    const totalTodos = await db.todo.count({
-      where: {
-        userId: currentUser.id
-      }
-    });
-    
-    const completedTodos = await db.todo.count({
+    const mediumPriorityCount = await db.todo.count({
       where: {
         userId: currentUser.id,
-        status: 'completed'
-      }
+        priority: 'medium',
+      },
     });
     
-    const completionRate = totalTodos > 0 
-      ? Math.round((completedTodos / totalTodos) * 100) 
-      : 0;
+    const lowPriorityCount = await db.todo.count({
+      where: {
+        userId: currentUser.id,
+        priority: 'low',
+      },
+    });
     
     return NextResponse.json({
-      statusCounts,
-      priorityCounts,
-      overdueTodos,
-      dueTodayTodos,
-      recentlyCompletedCount,
       totalTodos,
       completedTodos,
-      completionRate,
+      pendingTodos: totalTodos - completedTodos,
+      overdueTodos,
+      upcomingTodos,
+      completionRate: Math.round(completionRate * 100) / 100, // Round to 2 decimal places
+      priorityDistribution: {
+        high: highPriorityCount,
+        medium: mediumPriorityCount,
+        low: lowPriorityCount,
+      }
     }, { status: 200 });
   } catch (error) {
     console.error('Error fetching todo statistics:', error);
