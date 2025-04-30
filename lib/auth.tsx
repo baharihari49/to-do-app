@@ -1,11 +1,9 @@
-// lib/auth.ts
-
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import { flushSync } from 'react-dom';
 
-// Define types
 type User = {
   id: string;
   email: string;
@@ -31,17 +29,15 @@ type RegisterData = {
   password: string;
 };
 
-// Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Auth Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Check if user is logged in
+  // Check auth status on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
@@ -60,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuthStatus();
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
@@ -80,8 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Failed to login');
       }
 
-      setUser(data.user);
-      router.push('/');
+      // Update user state
+      // Di AuthProvider setelah setUser
+      flushSync(() => {
+        setUser(data.user);
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const callbackUrl = params.get('callbackUrl') || '/';
+
+      window.location.href = callbackUrl;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
       console.error('Login error:', err);
@@ -90,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Register function
   const register = async (userData: RegisterData) => {
     setLoading(true);
     setError(null);
@@ -110,7 +112,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Failed to register');
       }
 
-      // Login after successful registration
       await login(userData.email, userData.password);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -120,7 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Logout function
   const logout = async () => {
     setLoading(true);
 
@@ -128,9 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await fetch('/api/auth/logout', {
         method: 'POST',
       });
-      
+
       setUser(null);
-      router.push('/login');
+      router.replace('/login');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -138,7 +138,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Clear error
   const clearError = () => setError(null);
 
   return (
@@ -148,13 +147,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Custom hook to use the auth context
 export function useAuth() {
   const context = useContext(AuthContext);
-  
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
-  
   return context;
 }

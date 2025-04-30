@@ -1,4 +1,4 @@
-import { Calendar, ChartLine , Settings, User, ListChecks} from "lucide-react"
+import { Calendar, ChartLine, Settings, User, ListChecks, SquareKanban } from "lucide-react"
 
 import {
   Sidebar,
@@ -22,6 +22,11 @@ const items = [
     title: "Anlaytics",
     url: "/analytics",
     icon: ChartLine,
+  },
+  {
+    title: "Kanban",
+    url: "/kanban",
+    icon: SquareKanban,
   },
   {
     title: "Calendar",

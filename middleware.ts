@@ -24,11 +24,6 @@ export async function middleware(request: NextRequest) {
     path === publicPath || path.startsWith('/api/auth/')
   );
   
-  // Check if this is a todos API request
-  const isTodosApi = todoApiPaths.some(todoPath => 
-    path === todoPath || path.startsWith(`${todoPath}/`)
-  );
-
   // Allow access to static files and public paths
   if (
     path.includes('.') || // Static files like images, CSS
