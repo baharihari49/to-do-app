@@ -20,7 +20,6 @@ export interface Todo {
   createdAt?: string;
   updatedAt?: string;
   createdBy?: {
-    split(arg0: string): unknown;
     name: string;
     avatar?: string;
   };
