@@ -49,7 +49,7 @@ export const MonthView = ({
       days.push(
         <div 
           key={`empty-${i}`} 
-          className="p-2 border bg-muted/20 h-28 md:h-32"
+          className="border bg-muted/20 h-12 md:h-28"
         ></div>
       );
     }
@@ -67,73 +67,88 @@ export const MonthView = ({
       days.push(
         <div 
           key={day} 
-          className={`p-2 border relative h-28 md:h-32 overflow-hidden hover:bg-muted/10 transition-colors ${
+          className={`border relative h-12 md:h-28 md:overflow-hidden hover:bg-muted/10 transition-colors ${
             isCurrentMonth && day === currentDay ? 'bg-primary/5 border-primary/50' : ''
           } ${
             selectedDayNumber === day ? 'ring-1 ring-primary' : ''
           }`}
           onClick={() => onDateClick(day)}
         >
-          <div className="flex justify-between items-start">
-            <span className={`inline-block w-6 h-6 rounded-full text-center ${
-              isCurrentMonth && day === currentDay ? 'bg-primary text-primary-foreground' : ''
+          {/* Mobile view - Simple dot indicator with centered day number */}
+          <div className="flex flex-col items-center justify-center h-full md:hidden">
+            {filteredTasks.length > 0 && (
+              <div className="w-2 h-2 rounded-full bg-blue-500 mb-1"></div>
+            )}
+            <span className={`text-sm ${
+              isCurrentMonth && day === currentDay ? 'text-primary font-medium' : ''
             }`}>
               {day}
             </span>
-            
-            {filteredTasks.length > 0 && (
-              <Badge variant="outline" className="text-xs">
-                {filteredTasks.length}
-              </Badge>
-            )}
           </div>
           
-          <div className="mt-1 space-y-1">
-            {filteredTasks.slice(0, 3).map(task => (
-              <div 
-                key={task.id}
-                className={`text-xs p-1 rounded cursor-pointer ${
-                  getStatusStyle(task.status)
-                } ${
-                  task.priority === 'high' ? 'border-l-2 border-destructive' : 
-                  task.priority === 'medium' ? 'border-l-2 border-yellow-500' : ''
-                } ${
-                  task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed' ? 'text-destructive' : ''
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTaskClick(task);
-                }}
-              >
-                <div className="flex items-center gap-1">
-                  {task.createdBy && (
-                    <div className="flex-shrink-0 -ml-1 -mt-1">
-                      <OwnerAvatar owner={task.createdBy} />
-                    </div>
-                  )}
-                  <span className="truncate">{task.title}</span>
+          {/* Desktop view - Full day cell with task details */}
+          <div className="hidden md:block p-2">
+            <div className="flex justify-between items-start">
+              <span className={`inline-block w-6 h-6 rounded-full text-center ${
+                isCurrentMonth && day === currentDay ? 'bg-primary text-primary-foreground' : ''
+              }`}>
+                {day}
+              </span>
+              
+              {filteredTasks.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {filteredTasks.length}
+                </Badge>
+              )}
+            </div>
+            
+            <div className="mt-1 space-y-1">
+              {filteredTasks.slice(0, 3).map(task => (
+                <div 
+                  key={task.id}
+                  className={`text-xs p-1 rounded cursor-pointer ${
+                    getStatusStyle(task.status)
+                  } ${
+                    task.priority === 'high' ? 'border-l-2 border-destructive' : 
+                    task.priority === 'medium' ? 'border-l-2 border-yellow-500' : ''
+                  } ${
+                    task.dueDate && isOverdue(task.dueDate) && task.status !== 'completed' ? 'text-destructive' : ''
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTaskClick(task);
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    {task.createdBy && (
+                      <div className="flex-shrink-0 -ml-1 -mt-1">
+                        <OwnerAvatar owner={task.createdBy} />
+                      </div>
+                    )}
+                    <span className="truncate">{task.title}</span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+              
+              {filteredTasks.length > 3 && (
+                <div className="text-xs text-muted-foreground text-center">
+                  +{filteredTasks.length - 3} more
+                </div>
+              )}
+            </div>
             
-            {filteredTasks.length > 3 && (
-              <div className="text-xs text-muted-foreground text-center">
-                +{filteredTasks.length - 3} more
-              </div>
-            )}
-          </div>
-          
-          {/* Task indicators */}
-          <div className="absolute top-1 right-1 flex gap-1">
-            {hasHighPriorityTask && (
-              <div className="w-2 h-2 rounded-full bg-destructive"></div>
-            )}
-            {hasOverdueTask && (
-              <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-            )}
-            {hasInProgressTask && (
-              <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            )}
+            {/* Task indicators (desktop only) */}
+            <div className="absolute top-1 right-1 flex gap-1">
+              {hasHighPriorityTask && (
+                <div className="w-2 h-2 rounded-full bg-destructive"></div>
+              )}
+              {hasOverdueTask && (
+                <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+              )}
+              {hasInProgressTask && (
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+              )}
+            </div>
           </div>
         </div>
       );
@@ -145,14 +160,14 @@ export const MonthView = ({
   return (
     <div>
       {/* Weekday Headers */}
-      <div className="grid grid-cols-7 gap-0 text-center font-medium border-b border-l border-r">
-        <div className="p-2 border-t">Sun</div>
-        <div className="p-2 border-t border-l">Mon</div>
-        <div className="p-2 border-t border-l">Tue</div>
-        <div className="p-2 border-t border-l">Wed</div>
-        <div className="p-2 border-t border-l">Thu</div>
-        <div className="p-2 border-t border-l">Fri</div>
-        <div className="p-2 border-t border-l">Sat</div>
+      <div className="grid grid-cols-7 gap-0 text-center border-b border-l border-r">
+        <div className="py-2 md:p-2 border-t font-medium">Sun</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Mon</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Tue</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Wed</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Thu</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Fri</div>
+        <div className="py-2 md:p-2 border-t border-l font-medium">Sat</div>
       </div>
       
       {/* Calendar Days */}

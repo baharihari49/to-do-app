@@ -1,4 +1,3 @@
-// app/login/page.tsx
 'use client';
 
 import { GalleryVerticalEnd } from "lucide-react";
@@ -28,7 +27,7 @@ export default function LoginPage() {
             <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            Todo App
+            NextDo
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
@@ -37,9 +36,9 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <div className="bg-muted relative hidden lg:block">
+      <div className="bg-muted relative hidden lg:block h-screen">
         <Image
-          src="/placeholder.svg"
+          src="/imageAuth.svg"
           alt="Login background"
           fill
           priority

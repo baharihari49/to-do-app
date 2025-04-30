@@ -237,7 +237,7 @@ export const ListTable: React.FC<ListTableProps> = ({
             <div className="bg-card rounded-lg border shadow-sm">
                 {/* Table */}
                 <div className="relative w-full overflow-auto">
-                    <table className="w-full caption-bottom text-sm">
+                    <table className="min-w-full w-max caption-bottom text-sm">
                         <thead>
                             <TableHeader
                                 handleSelectAll={handleSelectAll}

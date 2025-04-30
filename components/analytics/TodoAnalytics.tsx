@@ -88,7 +88,7 @@ const TodoAnalytics = () => {
       </div>
       
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <OverviewCard
           title="Total Tasks"
           value={overviewStats.totalCount}

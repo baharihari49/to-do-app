@@ -28,7 +28,7 @@ export default function RegisterPage() {
             <div className="bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
               <GalleryVerticalEnd className="size-4" />
             </div>
-            Todo App
+            NextDo
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
@@ -39,7 +39,7 @@ export default function RegisterPage() {
       </div>
       <div className="bg-muted relative hidden lg:block">
         <Image
-          src="/placeholder.svg"
+          src="/imageAuth.svg"
           alt="Login background"
           fill
           priority
