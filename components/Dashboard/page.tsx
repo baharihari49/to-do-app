@@ -18,7 +18,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
     pagination,
     selected,
     selectedCount,
-    stats,
+    overviewStats,
     setFilter,
     setSortBy,
     setCurrentPage,
@@ -69,11 +69,13 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
 
   return (
     <div className="space-y-6">
-      <Overview
-        completedCount={stats.completedCount}
-        todos={todos}
-        completionRate={stats.completionRate}
-        isOverdue={isOverdue}
+       <Overview
+        completedCount={overviewStats.completedCount}
+        completionRate={overviewStats.completionRate}
+        overdueCount={overviewStats.overdueCount}
+        pendingCount={overviewStats.pendingCount}
+        inProgressCount={overviewStats.inProgressCount}
+        totalCount={overviewStats.totalCount}
       />
 
       <ListTable

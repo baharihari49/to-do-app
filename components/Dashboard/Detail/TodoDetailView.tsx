@@ -13,13 +13,15 @@ interface TodoDetailViewProps {
   onDelete?: (id: number) => void;
   onBack?: () => void;
   onToggleStatus?: (id: number) => void;
+  onSetStatus?: (id: number, status: 'pending' | 'in-progress' | 'completed') => void;
 }
 
 const TodoDetailView: React.FC<TodoDetailViewProps> = ({ 
   todo, 
   onEdit, 
   onDelete, 
-  onToggleStatus 
+  onToggleStatus,
+  onSetStatus
 }) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
@@ -37,6 +39,7 @@ const TodoDetailView: React.FC<TodoDetailViewProps> = ({
         todo={todo} 
         onEdit={onEdit} 
         onToggleStatus={onToggleStatus}
+        onSetStatus={onSetStatus}
         setIsDeleteDialogOpen={setIsDeleteDialogOpen}
       />
       

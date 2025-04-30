@@ -228,10 +228,20 @@ const TodoCalendarView = () => {
     }
   };
 
-  // Handle set task status
-  const handleSetTaskStatus = async (id: string | number, status: 'pending' | 'in-progress' | 'completed') => {
+  // Handle set task status - untuk dukungan in-progress
+  const handleSetTaskStatus = async (id: number | string, status: 'pending' | 'in-progress' | 'completed') => {
     try {
       await setTodoStatus(id, status);
+      
+      // Update selectedTask jika task yang status-nya diubah adalah task yang sedang dipilih
+      if (selectedTask && selectedTask.id === id) {
+        setSelectedTask({
+          ...selectedTask,
+          status: status
+        });
+      }
+      
+      // Refresh todos untuk memperbarui tampilan
       refetchTodos();
     } catch (error) {
       console.error(`Error setting task status to ${status}:`, error);
@@ -286,6 +296,7 @@ const TodoCalendarView = () => {
       return taskDate.toDateString() === selectedDate.toDateString();
     }));
   };
+  
 
   // Render navigation controls based on view type
   const renderNavigation = () => {
@@ -652,6 +663,7 @@ const TodoCalendarView = () => {
           onEdit={handleEditTask}
           onDelete={handleDeleteTask}
           onToggleStatus={toggleTodoStatus}
+          onSetStatus={handleSetTaskStatus}
           fetchTodos={refetchTodos}
         />
       )}

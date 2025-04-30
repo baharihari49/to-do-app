@@ -1,5 +1,5 @@
 // TodoHeader.tsx
-import { Calendar, Clock, Edit as EditIcon, Trash as TrashIcon, CheckCircle, XCircle, AlertCircle, Clock4, Tag } from 'lucide-react';
+import { Calendar, Clock, Edit as EditIcon, Trash as TrashIcon, CheckCircle, XCircle, AlertCircle, Clock4, Tag, Play } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate, getDaysStatus } from '@/utils/DateUtils';
@@ -12,13 +12,15 @@ interface TodoHeaderProps {
   onEdit?: (todo: Todo) => void;
   onToggleStatus?: (id: number) => void;
   setIsDeleteDialogOpen: (isOpen: boolean) => void;
+  onSetStatus?: (id: number, status: 'pending' | 'in-progress' | 'completed') => void;
 }
 
 export const TodoHeader: React.FC<TodoHeaderProps> = ({ 
   todo, 
   onEdit, 
   onToggleStatus,
-  setIsDeleteDialogOpen
+  setIsDeleteDialogOpen,
+  onSetStatus
 }) => {
   const daysStatus = getDaysStatus(todo.dueDate, todo.status);
   
@@ -30,6 +32,63 @@ export const TodoHeader: React.FC<TodoHeaderProps> = ({
       case 'clock4': return <Clock4 className="h-4 w-4" />;
       case 'checkSquare': return <CheckCircle className="h-4 w-4" />;
       default: return <Clock4 className="h-4 w-4" />;
+    }
+  };
+
+  // Determine which status action buttons to show based on current status
+  const renderStatusActions = () => {
+    switch(todo.status) {
+      case 'completed':
+        return (
+          <Button 
+            onClick={() => onSetStatus ? onSetStatus(todo.id, 'pending') : (onToggleStatus && onToggleStatus(todo.id))}
+            variant="outline"
+            size="sm"
+            className="gap-1 border-green-200 text-green-700 hover:bg-green-50 transition-all"
+          >
+            <XCircle className="h-4 w-4" />
+            <span>Mark Pending</span>
+          </Button>
+        );
+      
+      case 'in-progress':
+        return (
+          <Button 
+            onClick={() => onSetStatus && onSetStatus(todo.id, 'completed')}
+            variant="default"
+            size="sm"
+            className="gap-1 bg-green-600 hover:bg-green-700 text-white transition-all"
+          >
+            <CheckCircle className="h-4 w-4" />
+            <span>Mark Complete</span>
+          </Button>
+        );
+      
+      case 'pending':
+      default:
+        return (
+          <>
+            <Button 
+              onClick={() => onSetStatus && onSetStatus(todo.id, 'in-progress')}
+              variant="default"
+              size="sm"
+              className="gap-1 bg-blue-600 hover:bg-blue-700 text-white transition-all"
+            >
+              <Play className="h-4 w-4" />
+              <span>Mark In-Progress</span>
+            </Button>
+            
+            <Button 
+              onClick={() => onSetStatus ? onSetStatus(todo.id, 'completed') : (onToggleStatus && onToggleStatus(todo.id))}
+              variant="default"
+              size="sm"
+              className="gap-1 bg-green-600 hover:bg-green-700 text-white transition-all ml-2"
+            >
+              <CheckCircle className="h-4 w-4" />
+              <span>Mark Complete</span>
+            </Button>
+          </>
+        );
     }
   };
 
@@ -62,24 +121,9 @@ export const TodoHeader: React.FC<TodoHeaderProps> = ({
         </div>
         
         <div className="flex gap-2">
-          <Button 
-            onClick={() => onToggleStatus && onToggleStatus(todo.id)}
-            variant={todo.status === 'completed' ? 'outline' : 'default'}
-            size="sm"
-            className={`gap-1 transition-all ${todo.status === 'completed' ? 'border-green-200 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'}`}
-          >
-            {todo.status === 'completed' ? (
-              <>
-                <XCircle className="h-4 w-4" />
-                <span>Mark Pending</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                <span>Mark Complete</span>
-              </>
-            )}
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {renderStatusActions()}
+          </div>
           
           <div className="flex">
             <Button

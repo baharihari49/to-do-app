@@ -23,6 +23,15 @@ type TodosResponse = {
   pagination: PaginationData;
 };
 
+type OverviewStatsData = {
+  completedCount: number;
+  totalCount: number;
+  completionRate: number;
+  overdueCount: number;
+  pendingCount: number;
+  inProgressCount: number;
+};
+
 export function useTodos() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -37,6 +46,7 @@ export function useTodos() {
 
   const todosQueryKey = ['todos', { filter, currentPage, limit }];
 
+  // Query untuk mendapatkan data todo dengan paginasi (untuk tampilan tabel)
   const { data: todosData, isLoading, error, refetch: refetchTodos } = useQuery<TodosResponse, Error>({
     queryKey: todosQueryKey,
     queryFn: async (): Promise<TodosResponse> => {
@@ -55,6 +65,7 @@ export function useTodos() {
     enabled: !!user,
   });
 
+  // Query terpisah untuk mendapatkan statistik dari API
   const { data: statsData } = useQuery<StatsData, Error>({
     queryKey: ['todosStats'],
     queryFn: async (): Promise<StatsData> => {
@@ -72,6 +83,56 @@ export function useTodos() {
     enabled: !!user,
   });
 
+  // Query baru untuk mengambil semua todo tanpa paginasi (untuk overview)
+  const { data: allTodosData, isLoading: isLoadingAllTodos } = useQuery<Todo[], Error>({
+    queryKey: ['allTodos'],
+    queryFn: async (): Promise<Todo[]> => {
+      if (!user) {
+        return [];
+      }
+      // Endpoint baru yang mengembalikan semua todo tanpa paginasi
+      const res = await fetch('/api/todos/all');
+      if (!res.ok) throw new Error('Failed to fetch all todos');
+      return res.json();
+    },
+    placeholderData: [],
+    enabled: !!user,
+  });
+
+  // Hitung statistik untuk overview berdasarkan semua data
+  const calculateOverviewStats = useCallback((): OverviewStatsData => {
+    if (!allTodosData || !Array.isArray(allTodosData)) {
+      return {
+        completedCount: 0,
+        totalCount: 0,
+        completionRate: 0,
+        overdueCount: 0,
+        pendingCount: 0,
+        inProgressCount: 0
+      };
+    }
+  
+    const totalCount = allTodosData.length;
+    const completedCount = allTodosData.filter(todo => todo.status === 'completed').length;
+    const completionRate = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+    
+    // Fix: Menggunakan todo.dueDate bukan todo sebagai argumen untuk isOverdue
+    const overdueCount = allTodosData.filter(todo => 
+      todo.status !== 'completed' && isOverdue(todo.dueDate)
+    ).length;
+    
+    const pendingCount = allTodosData.filter(todo => todo.status === 'pending').length;
+    const inProgressCount = allTodosData.filter(todo => todo.status === 'in-progress').length;
+  
+    return {
+      completedCount,
+      totalCount,
+      completionRate,
+      overdueCount,
+      pendingCount,
+      inProgressCount
+    };
+  }, [allTodosData, isOverdue]);
   const addTodoMutation = useMutation({
     mutationFn: async (todoData: Omit<Todo, 'id' | 'createdAt' | 'updatedAt' | 'userId'>) => {
       const res = await fetch('/api/todos', {
@@ -86,6 +147,7 @@ export function useTodos() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
       queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['allTodos'] });
     },
   });
 
@@ -103,6 +165,7 @@ export function useTodos() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
       queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['allTodos'] });
     },
   });
 
@@ -116,6 +179,7 @@ export function useTodos() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
       queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['allTodos'] });
     },
   });
 
@@ -175,6 +239,7 @@ export function useTodos() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
       queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['allTodos'] });
       // Reset selected items setelah operasi batch berhasil
       setSelected({});
     },
@@ -204,6 +269,7 @@ export function useTodos() {
     }
     return todos;
   }, [todos, sortBy]);
+
   const handleSelect = useCallback((id: number, isChecked: boolean) => {
     setSelected(prev => ({ ...prev, [id]: isChecked }));
   }, []);
@@ -230,6 +296,7 @@ export function useTodos() {
     queryClient.invalidateQueries({ queryKey: ['todos'] });
     queryClient.invalidateQueries({ queryKey: ['todosStats'] });
     queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+    queryClient.invalidateQueries({ queryKey: ['allTodos'] });
   }, [todos, updateTodoMutation, queryClient]);
 
   // Set specific status function
@@ -244,6 +311,7 @@ export function useTodos() {
       queryClient.invalidateQueries({ queryKey: ['todos'] });
       queryClient.invalidateQueries({ queryKey: ['todosStats'] });
       queryClient.invalidateQueries({ queryKey: ['calendarTodos'] });
+      queryClient.invalidateQueries({ queryKey: ['allTodos'] });
     } catch (error) {
       console.error(`Error setting task status to ${status}:`, error);
     }
@@ -267,6 +335,9 @@ export function useTodos() {
     pagination,
     selected,
     selectedCount,
+    allTodos: allTodosData || [],
+    isLoadingAllTodos,
+    overviewStats: calculateOverviewStats(),
     stats: statsData ? { completedCount: statsData.completedTodos, completionRate: statsData.completionRate } : { completedCount: 0, completionRate: 0 },
     setFilter,
     setSortBy,

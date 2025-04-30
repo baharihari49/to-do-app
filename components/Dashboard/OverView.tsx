@@ -1,83 +1,112 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { ListTodo, CheckCircle2, Clock } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { Calendar } from 'lucide-react';
-import React from 'react';
-import { Todo } from '@/Types/Types';
-
-interface OverviewProps {
+// components/Dashboard/Overview.tsx
+import { 
+    CheckCircle, 
+    AlertTriangle, 
+    Activity,
+    Play
+  } from 'lucide-react';
+  import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+  } from "@/components/ui/card";
+  import { Todo } from '@/Types/Types';
+  import { cn } from '@/lib/utils'; // Import cn utility
+  
+  interface OverviewProps {
     completedCount: number;
-    todos: Todo[];
     completionRate: number;
-    isOverdue: (dateString: string) => boolean;
-}
-
-export const Overview: React.FC<OverviewProps> = ({
+    overdueCount?: number;
+    pendingCount?: number;
+    inProgressCount?: number;
+    totalCount?: number;
+    isOverdue?: (todo: Todo) => boolean;
+  }
+  
+  export function Overview({
     completedCount,
-    todos,
     completionRate,
-    isOverdue
-}) => {
+    overdueCount = 0,
+    inProgressCount = 0,
+    totalCount = 0,
+  }: OverviewProps) {
+    // Format completion rate to 1 decimal place
+    const formattedCompletionRate = completionRate ? completionRate.toFixed(1) : "0.0";
+    
+    // Determine progress bar color based on completion rate
+    const progressColor = 
+      completionRate < 30 ? "bg-red-500" : 
+      completionRate < 70 ? "bg-yellow-500" : 
+      "bg-green-500";
+    
     return (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <h3 className="text-sm font-medium">Total Tasks</h3>
-                    <ListTodo className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{todos.length}</div>
-                    <p className="text-xs text-muted-foreground">
-                        {completedCount} completed, {todos.length - completedCount} pending
-                    </p>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <h3 className="text-sm font-medium">Completion Rate</h3>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{completionRate}%</div>
-                    <Progress value={completionRate} className="h-2 mt-2" />
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <h3 className="text-sm font-medium">Due Today</h3>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">
-                        {todos.filter(todo => {
-                            const today = new Date().toISOString().split('T')[0];
-                            return todo.dueDate === today && todo.status === "pending";
-                        }).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Tasks that need attention today
-                    </p>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <h3 className="text-sm font-medium">Overdue</h3>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-destructive">
-                        {todos.filter(todo => 
-                            isOverdue(todo.dueDate) && todo.status === "pending"
-                        ).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                        Tasks past their due date
-                    </p>
-                </CardContent>
-            </Card>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Completed
+            </CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{completedCount}</div>
+            <p className="text-xs text-muted-foreground">
+              out of {totalCount} tasks
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Completion Rate
+            </CardTitle>
+            <Activity className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formattedCompletionRate}%</div>
+            <div className="w-full mt-2">
+              {/* Custom progress bar dengan styling warna dinamis */}
+              <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className={cn("h-full rounded-full", progressColor)} 
+                  style={{ width: `${Math.min(completionRate, 100)}%` }}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              In Progress
+            </CardTitle>
+            <Play className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{inProgressCount}</div>
+            <p className="text-xs text-muted-foreground">
+              tasks currently in progress
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Overdue
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{overdueCount}</div>
+            <p className="text-xs text-muted-foreground">
+              tasks past due date
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     );
-}
+  }

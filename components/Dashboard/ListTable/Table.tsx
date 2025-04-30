@@ -159,18 +159,34 @@ export const ListTable: React.FC<ListTableProps> = ({
         }, 300);
     };
 
+    // Fungsi untuk menangani toggle status dari detail view
     const handleDetailToggleStatus = (id: string | number) => {
         // Toggle status tanpa menutup sheet
         toggleTodoStatus(id as number);
         // Refresh data setelah toggle
         fetchTodos();
-        // forceUpdate(); // Force UI update
 
         // Perbarui viewingTodo untuk memastikan UI terupdate
         if (viewingTodo && viewingTodo.id === id) {
             setViewingTodo({
                 ...viewingTodo,
                 status: viewingTodo.status === 'completed' ? 'pending' : 'completed'
+            });
+        }
+    };
+
+    // Fungsi baru untuk mengatur status spesifik
+    const handleSetTodoStatus = (id: string | number, status: 'pending' | 'in-progress' | 'completed') => {
+        // Panggil API untuk mengubah status
+        setTodoStatus(id, status);
+        // Refresh data setelah perubahan
+        fetchTodos();
+
+        // Perbarui viewingTodo untuk memastikan UI terupdate
+        if (viewingTodo && viewingTodo.id === id) {
+            setViewingTodo({
+                ...viewingTodo,
+                status: status
             });
         }
     };
@@ -244,7 +260,7 @@ export const ListTable: React.FC<ListTableProps> = ({
                                     toggleTodoStatus={toggleTodoStatus}
                                     handleOpenEditModal={handleOpenEditModal}
                                     deleteTodo={deleteTodo}
-                                    setTodoStatus={setTodoStatus} 
+                                    setTodoStatus={setTodoStatus}
                                 />
                             ))}
 
@@ -308,6 +324,7 @@ export const ListTable: React.FC<ListTableProps> = ({
                     fetchTodos={fetchTodos}
                     open={isDetailSheetOpen}
                     setOpen={setIsDetailSheetOpen}
+                    onSetStatus={handleSetTodoStatus}
                     isRowClickable={true}
                 />
             )}

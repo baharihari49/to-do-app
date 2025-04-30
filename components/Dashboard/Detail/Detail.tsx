@@ -16,6 +16,7 @@ interface DetailProps {
   onEdit?: (todo: Todo) => void;
   onDelete?: (id: number) => void;
   onToggleStatus?: (id: number) => void;
+  onSetStatus?: (id: number, status: 'pending' | 'in-progress' | 'completed') => void;
   fetchTodos?: () => void;
   open?: boolean;
   setOpen?: React.Dispatch<React.SetStateAction<boolean>>;
@@ -27,6 +28,7 @@ export const Detail: React.FC<DetailProps> = ({
   onEdit,
   onDelete,
   onToggleStatus,
+  onSetStatus,
   fetchTodos,
   open,
   setOpen,
@@ -75,6 +77,17 @@ export const Detail: React.FC<DetailProps> = ({
     }
   };
 
+  const handleSetStatus = (id: number, status: 'pending' | 'in-progress' | 'completed') => {
+    if (onSetStatus) {
+      onSetStatus(id, status);
+    }
+    // Tidak perlu menutup sheet setelah mengubah status
+    // Reload todo data
+    if (fetchTodos) {
+      fetchTodos();
+    }
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       {!isRowClickable && (
@@ -106,6 +119,7 @@ export const Detail: React.FC<DetailProps> = ({
               onDelete={handleDelete}
               onBack={handleClose}
               onToggleStatus={handleToggleStatus}
+              onSetStatus={handleSetStatus}
             />
           )}
         </div>

@@ -1,28 +1,34 @@
 // StatusBadge.tsx
-import { CheckCircle, Clock4 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Clock, Play } from 'lucide-react';
 
 interface StatusBadgeProps {
-  status: string;
+  status: 'pending' | 'in-progress' | 'completed';
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
-  // Get the status icon
-  const getStatusIcon = (status: string) => {
-    return status === 'completed' 
-      ? <CheckCircle className="h-4 w-4 text-green-500" /> 
-      : <Clock4 className="h-4 w-4 text-blue-500" />;
-  };
-
-  return (
-    <Badge 
-      variant={status === 'completed' ? 'default' : 'outline'} 
-      className={status === 'completed' ? 'bg-green-100 text-green-800 hover:bg-green-200 border-green-200' : 'border-gray-200 text-gray-800'}
-    >
-      {getStatusIcon(status)}
-      <span className="ml-1">
-        {status === 'completed' ? 'Completed' : 'Pending'}
-      </span>
-    </Badge>
-  );
+  switch (status) {
+    case 'completed':
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Completed
+        </Badge>
+      );
+    case 'in-progress':
+      return (
+        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border border-blue-200">
+          <Play className="h-3 w-3 mr-1" />
+          In Progress
+        </Badge>
+      );
+    case 'pending':
+    default:
+      return (
+        <Badge variant="outline" className="bg-gray-100 border-gray-200 text-gray-800">
+          <Clock className="h-3 w-3 mr-1" />
+          Pending
+        </Badge>
+      );
+  }
 };

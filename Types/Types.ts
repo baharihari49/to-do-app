@@ -14,7 +14,7 @@ export interface Todo {
   description: string;
   status: StatusType;
   dueDate: string;
-  startDate?: string;
+  startDate: string;
   time?: string;
   priority: PriorityLevel;
   createdAt?: string;
