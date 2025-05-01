@@ -39,7 +39,7 @@ export function useTodos() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [sortBy, setSortBy] = useState<SortByType>('dueDate');
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit] = useState(5);
+  const [limit] = useState(10);
   const [selected, setSelected] = useState<SelectedTodos>({});
 
   const selectedCount = Object.values(selected).filter(Boolean).length;

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '../ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
-import { User, Settings, LogOut } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 
@@ -39,12 +39,7 @@ export const AvatarUser = () => {
         router.push('/profile');
     };
 
-    // Handle settings navigation
-    const handleSettingsClick = () => {
-        router.push('/settings');
-    };
-
-    // If no user is logged in, show a simplified avatar
+   // If no user is logged in, show a simplified avatar
     if (!user) {
         return (
             <Button variant="ghost" className="relative h-8 w-8 rounded-full" onClick={() => router.push('/login')}>
@@ -76,10 +71,6 @@ export const AvatarUser = () => {
                 <DropdownMenuItem onClick={handleProfileClick}>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSettingsClick}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 

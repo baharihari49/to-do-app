@@ -1,4 +1,4 @@
-import TodoDashboard from "@/components/Dashboard/page";
+import TodoDashboard from "@/components/Task/page";
 
 export default function Home() {
   return (

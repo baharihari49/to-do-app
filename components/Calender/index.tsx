@@ -27,8 +27,8 @@ import { Label } from '@/components/ui/label';
 import { useCalendarTodos } from '@/hooks/useTodoCalendar';
 import { Todo } from '@/Types/Types';
 import { Create } from './Create/Create';
-import { Edit } from '../Dashboard/Edit/Edit';
-import { Detail } from '../Dashboard/Detail/Detail';
+import { Edit } from '../Task/Edit/Edit';
+import { Detail } from '../Task/Detail/Detail';
 
 // Import our components
 import { DayView } from './components/DayView';

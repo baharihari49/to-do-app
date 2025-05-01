@@ -8,6 +8,7 @@ export const Header = () => {
                 <div className="flex items-center justify-between w-full gap-2 px-4">
                     <div className="flex items-center gap-5">
                         <SidebarTrigger />
+                        <h1 className="text-xl font-medium">NexDo</h1>
                     </div>
                     <AvatarUser />
                 </div>

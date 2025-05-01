@@ -1,7 +1,7 @@
 'use client'
 
 import { ModalDialog } from "@/components/Modal/Modal"
-import { FormComponents } from "@/components/Dashboard/Form/Form"
+import { FormComponents } from "@/components/Task/Form/Form"
 import { Todo, TodoFormValues } from "@/Types/Types"
 import { useTodos } from "@/hooks/useTodos"
 

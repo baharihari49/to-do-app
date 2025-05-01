@@ -4,9 +4,9 @@ import { useState } from 'react';
 import TodoCalendarView from '@/components/Calender';
 import { useCalendarTodos } from '@/hooks/useTodoCalendar';
 import { Todo } from '@/Types/Types';
-import { Create } from '@/components/Dashboard/Create/Create';
-import { Edit } from '@/components/Dashboard/Edit/Edit';
-import { Detail } from '@/components/Dashboard/Detail/Detail';
+import { Create } from '@/components/Task/Create/Create';
+import { Edit } from '@/components/Task/Edit/Edit';
+import { Detail } from '@/components/Task/Detail/Detail';
 
 export default function CalendarPage() {
   const {
