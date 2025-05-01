@@ -35,7 +35,7 @@ const TodoDashboard: React.FC<TodoDashboardProps> = () => {
     isOverdue,
   } = useTodos();
 
-  const itemsPerPage = 5;
+  const itemsPerPage = 10;
   const totalCount = pagination.total;
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
