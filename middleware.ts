@@ -45,9 +45,39 @@ export async function middleware(request: NextRequest) {
     }
     
     // For page routes, redirect to login
-    const url = new URL('/login', request.url);
-    url.searchParams.set('callbackUrl', encodeURI(request.url));
-    return NextResponse.redirect(url);
+    // Get the correct base URL for the environment
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+    const protocol = isLocalhost ? 'http' : 'https';
+    
+    // For production, use the production domain
+    let baseUrl;
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = 'https://nexdo.baharihari.com';
+    } else {
+      baseUrl = `${protocol}://${host}`;
+    }
+    
+    // Get the original path and query
+    const originalPath = request.nextUrl.pathname + request.nextUrl.search;
+    
+    // Create the redirect URL
+    const loginUrl = new URL('/login', baseUrl);
+    
+    // Set the proper callbackUrl
+    const callbackUrl = `${baseUrl}${originalPath}`;
+    loginUrl.searchParams.set('callbackUrl', callbackUrl);
+    
+    // Debug logs (remove in production if not needed)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Redirect to login with:', {
+        originalUrl: request.url,
+        redirectUrl: loginUrl.toString(),
+        callbackUrl: callbackUrl
+      });
+    }
+    
+    return NextResponse.redirect(loginUrl);
   }
 
   try {
@@ -82,7 +112,23 @@ export async function middleware(request: NextRequest) {
     }
     
     // For page routes, redirect to login and clear the cookie
-    const response = NextResponse.redirect(new URL('/login', request.url));
+    // Get the correct base URL for the environment
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+    const protocol = isLocalhost ? 'http' : 'https';
+    
+    // For production, use the production domain
+    let baseUrl;
+    if (process.env.NODE_ENV === 'production') {
+      baseUrl = 'https://nexdo.baharihari.com';
+    } else {
+      baseUrl = `${protocol}://${host}`;
+    }
+    
+    // Create the redirect URL
+    const loginUrl = new URL('/login', baseUrl);
+    
+    const response = NextResponse.redirect(loginUrl);
     response.cookies.set({
       name: 'auth-token',
       value: '',
@@ -98,12 +144,11 @@ export async function middleware(request: NextRequest) {
 }
 
 // Configure which paths the middleware runs on
-// This is the critical part - we need to exclude the todos API
 export const config = {
   matcher: [
     // Match all paths except:
     // - Static files (_next/static, _next/image, favicon.ico)
-    // - Todo API paths
+    // - Todo API paths (based on todoApiPaths above)
     '/((?!_next/static|_next/image|favicon.ico|api/todos).*)',
   ],
 };
